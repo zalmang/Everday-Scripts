@@ -1,78 +1,110 @@
 import os
-from datetime import date
+from datetime import date, datetime
 import zfunctions as z
+import pattern_creator as p
 
-
-DOWNLOADS_PATH = "~/Downloads"
-
-def main():
-    return stage2(z.zinput("Are your files in Downloads?"))
-
-def stage2(option):
-    if option == 0:
-        return enterPath(os.path.expanduser(DOWNLOADS_PATH))
-    elif option == 1:
-        path = input("Enter path (format: /Users/(zalmangagerman?)/...)\n")
-    else:
-        print(f"Invalid entry: {option}. Try again")
-        return main()
-    return enterPath(path)
-
-def enterPath(path):
-    qExists = os.path.exists(path)
-    qIsFile = not os.path.isdir(path)
-    if not qExists:
-        print("Invalid path. Please try again.")
-        return stage2(1)
-
-    if qIsFile:
-        fileName = path.split("/")[-1]
-        if (not z.zinput(f"Is one of the files you want to rename {fileName}?")):
-            return enterPath(input("Please enter the path of the folder that the new files exist: "))
-    return decidePattern(path, qIsFile)
-
-def decidePattern(directory, qIsFile):
-    if (qIsFile):
-        returnPatternBasedOnFileName(directory)
-    else:
+class DirectoryGetter:
+    
+    _DOWNLOADS_PATH = "~/Downloads"
+    
+    
+    def __init__(self, dir=_DOWNLOADS_PATH, fname="", patt=""):
+        self._dir = dir
+        self._fname = fname
+        self._patt = patt
+    
+    def setDirAndPattern(self):
+        if (self.dirIncludesRealFile() and self.doYouWantThisFile()):
+            return self.returnPatternBasedOnFileName()
+        option = z.zinput("Are your files in Downloads?")
+        if option == 1:
+            self._dir = os.path.expanduser(self._dir)
+        elif option == 0:
+            self._dir = input("Enter path (format: /Users/(zalmangagerman?)/...)\n")
+        
+        if not self.isRealDir():
+            print("Invalid path. Please try again.")
+            return self.setDirAndPattern()
+        
+        if (self.dirIncludesRealFile()):
+            self._fname = self._dir.split("/")[-1]
+            if (self.doYouWantThisFile()):
+                return self.returnPatternBasedOnFileName()
+            else:
+                print("Let's start over")
+                return self.setDirAndPattern()
+        
         if (z.zinput("Do you want to give your pattern now?")):
-            pattern = input("Please enter the pattern")
-            #to-do: check to make sure this is a valid pattern
-            return rename(directory, pattern)
+            if (self.userInputsPattern()):
+                return
+            else:
+                print("No good. Try again!")
+                return self.setDirAndPattern()
+        
         if (z.zinput("Do you want to rename based on date?") == 1):
             if z.zinput("Did you download your files today?"):
                 udate = date.today()
             else:
-                #define dateInput()
-                udate = input("What date did you download your files? (dd-mm-yyyy)")
+                udate = z.dateInput()
                 #convert to something python can understand
                 #find a group of files with that date
+            
             return returnPatternBasedOnDate(directory, udate)
         else:
             return userGivesFileName(directory)
-        
-            # os.path.getmtime(path) returns the last modified time
-            # Add your logic here for processing the files
             
-def userGivesFileName(directory):
-    print(f"Looks like you want to do it by file name.")
-    fileName = input(f"What's the name of one file you want to sort by? Remember, you're in {directory}.")
-    if os.path.exists(f"{directory}/{fileName}" and not os.path.isdir(f"{directory}/{fileName}")):
-        return returnPatternBasedOnFileName(f"{directory}/{fileName}")
-    else:
-        print("No such file. Lets' try again")
-        return userGivesFileName(directory)
+                # os.path.getmtime(path) returns the last modified time
+                # Add your logic here for processing the files
+                
+    def userGivesFileName(self):
+        print(f"Looks like you want to do it by file name.")
+        self._fname = input(f"What's the name of one file you want to sort by? Remember, you're in {directory}.")
+        if os.path.exists(f"{self._dir}/{self._fname}" and not os.path.isdir(f"{self._dir}/{self._fname}")):
+            return returnPatternBasedOnFileName(f"{directory}/{fileName}")
+        else:
+            print("No such file. Lets' try again")
+            return userGivesFileName(directory)
+
+    def returnPatternBasedOnDate(directory, dateStr):
+        pass
+
+    def returnPatternBasedOnFileName(directoryWithFile):
+        pass
 
 
-def rename(directory, pattern):
-    pass
+    def isValidPattern(self):
+        for file in os.listdir(self._dir):
+            filename = os.fsdecode(file)
+            if self._patt in filename:
+                return 1
+        return 0
 
-def returnPatternBasedOnDate(directory, dateStr):
-    pass
-
-def returnPatternBasedOnFileName(directoryWithFile):
-    pass
-
+    def dirIncludesRealFile(self):
+        return (self.isRealDir() and self.isRealFile())
+    def isRealDir(self):
+        return os.path.exists(self._dir)
+    def isRealFile(self):
+        return not os.path.isdir(self._dir)
+    def doYouWantThisFile(self):
+        if (z.zinput(f"Is one of the files you want to rename {self._fname}?")):
+            return 1
+        else:
+            return 0
+        
+    def userInputsPattern(self):
+        self._patt = input("Please enter the pattern")
+        if (self.isValidPattern()):
+            return self.areTheseYourFiles()
+        else:
+            print("I'm sorry! That's not a valid pattern! Try again.")
+            return self.userInputsPattern()   
+    
+    def areTheseYourFiles(self):
+        print("Are these your files?")
+        for file in os.listdir(self._dir):
+            if self._patt in file:
+                print(f"{file}\n")
+        return z.zinput("\nAre these your files?")
 main()
 
 directory = os.path.expanduser("~/Downloads") # this is not correct
