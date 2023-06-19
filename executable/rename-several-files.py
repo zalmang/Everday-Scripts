@@ -1,10 +1,12 @@
 import os
 from datetime import date
+import zfunctions as z
+
 
 DOWNLOADS_PATH = "~/Downloads"
 
 def main():
-    return stage2(convertInput("Are your files in Downloads? (y/n)"))
+    return stage2(z.zinput("Are your files in Downloads?"))
 
 def stage2(option):
     if option == 0:
@@ -25,29 +27,51 @@ def enterPath(path):
 
     if qIsFile:
         fileName = path.split("/")[-1]
-        ans = input(f"Is one of the files you want to rename {fileName}? (y/n)")
-        if ans != "y":
+        if (not z.zinput(f"Is one of the files you want to rename {fileName}?")):
             return enterPath(input("Please enter the path of the folder that the new files exist: "))
     return decidePattern(path, qIsFile)
 
 def decidePattern(directory, qIsFile):
-    if not qIsFile:
-        if convertInput("Did you download your files today? (y/n)"):
-            today = date.today()
+    if (qIsFile):
+        returnPatternBasedOnFileName(directory)
+    else:
+        if (z.zinput("Do you want to give your pattern now?")):
+            pattern = input("Please enter the pattern")
+            #to-do: check to make sure this is a valid pattern
+            return rename(directory, pattern)
+        if (z.zinput("Do you want to rename based on date?") == 1):
+            if z.zinput("Did you download your files today?"):
+                udate = date.today()
+            else:
+                #define dateInput()
+                udate = input("What date did you download your files? (dd-mm-yyyy)")
+                #convert to something python can understand
+                #find a group of files with that date
+            return returnPatternBasedOnDate(directory, udate)
+        else:
+            return userGivesFileName(directory)
+        
             # os.path.getmtime(path) returns the last modified time
             # Add your logic here for processing the files
-            pass  # Placeholder, replace with your code
-
-def convertInput(inputstm, str=""):
-    if str == "":
-        str = input(inputstm)
-    if str.lower() == "y":
-        return 1
-    elif str.lower() == "n":
-        return 0
+            
+def userGivesFileName(directory):
+    print(f"Looks like you want to do it by file name.")
+    fileName = input(f"What's the name of one file you want to sort by? Remember, you're in {directory}.")
+    if os.path.exists(f"{directory}/{fileName}" and not os.path.isdir(f"{directory}/{fileName}")):
+        return returnPatternBasedOnFileName(f"{directory}/{fileName}")
     else:
-        return convertInput("Invalid entry. Please try again (y/n): ")
+        print("No such file. Lets' try again")
+        return userGivesFileName(directory)
 
+
+def rename(directory, pattern):
+    pass
+
+def returnPatternBasedOnDate(directory, dateStr):
+    pass
+
+def returnPatternBasedOnFileName(directoryWithFile):
+    pass
 
 main()
 
